@@ -17,19 +17,20 @@ Protocol::OSC - Open Sound Control v1.1 implementation
 
 This module implements (de)coding and processing of OSC packets according the specification. It's pure Perl implementation, yet faster
 than L<Net::LibLO> (~4x) and L<Net::OpenSoundControl> (~2x). Also it provides connection agnostic interface and
-path matching and type tagging according OSC specification L<http://opensoundcontrol.org/spec-1_0> / L<http://opensoundcontrol.org/spec-1_1>
+path matching and type tagging according L<OSC v1 specification|http://opensoundcontrol.org/spec-1_0> ( and L<v1.1|http://opensoundcontrol.org/spec-1_1> )
 
 =head1 CONSTRUCTOR
 
 =head2 new( ?actions => {}, ?scheduler => sub {...} )
 
-Creates Protocol::Instance with optional C<actions> argument which is hashref of pairs: C<< path => coderef >> and optional default scheduler for C<process> method - see below.
+Creates Protocol::Instance with optional L</actions> argument which is hashref of pairs: I<< path => coderef >> and optional default scheduler for L</process> method - see below.
 
 =head1 METHODS
 
 =head2 message($path, $typetag, ?@args)
 
-Encodes message to packet. Typetag supports these OSC-types: C<ifstdbht>. Everything else (like C<TFNI>) will not affect packing of C<@args>.
+Encodes message to packet. Typetag supports these OSC-types: I<ifstdbht>. Everything else (like I<TFNI>) will not affect packing of B<@args>.
+Alias: B<msg>
 
 =head2 bundle(undef || $unix_time, [@message_or_bundle], ...)
 
@@ -38,35 +39,35 @@ Encodes bundle to packet. Pack several OSC messages/bundles to a bundle.
 =head2 parse($data)
 
 Parses OSC packet data. Returns OSC message/bundle. 
-OSC-message is a blessed arrayref C<[$path, $type, @args]> with corresponding methods C<path>, C<type>, C<args>.
-OSC-bundle is a blessed arrayref C<[$time, @packets]> with corresponding methods C<time>, C<packets>
+OSC-message is a blessed arrayref B<[$path, $type, @args]> with corresponding methods B<path>, B<type>, B<args>.
+OSC-bundle is a blessed arrayref B<[$time, @packets]> with corresponding methods B<time>, B<packets>
 
 =head2 process($data, ?$scheduler_cb)
 
-Parses OSC packet/data and process messages in it. It will call matched actions throught C<$scheduler_cb> which is 
+Parses OSC packet/data and process messages in it. It will call matched actions throught B<$scheduler_cb> which is 
 just C<< sub { $_[0]->(splice @_,1) } >> by default(or specifed in constructor). 
-Arguments to scheduler are C<$action_coderef, $time, $action_path, $osc_msg, ?@osc_bundles>.
+Arguments to scheduler are B<$action_coderef, $time, $action_path, $osc_msg, ?@osc_bundles>.
 
 =head2 actions
 
-Returns hashref of actions: C<< path => coderef >> pairs. One could modify this hashref or use methods below.
+Returns hashref of actions: B<< path => coderef >> pairs. One could modify this hashref or use methods below.
 
 =head2 set_cb($path, $cb)
 
-Set coderef C<$cb> to C<actions>
+Set coderef B<$cb> to B<actions>
 
 =head2 del_cb($path)
 
-Remove coderef at C<$path> from C<actions> at C<$path>
+Remove coderef at B<$path> from B<actions> at B<$path>
 
 =head2 match($osc_path_pattern)
 
-Returns mathched actions in form of list of arrayrefs C<[$path, $coderef]>
+Returns mathched actions in form of list of arrayrefs B<[$path, $coderef]>
 
 =head2 time2tag($unix_time)
 
-Converts (fractional) unix epoch time to NTP timestamp, which is list of C<($seconds_since_1900_01_01, $int32_fraction_parts_of_second)>.
-If C<$unix_time> is undef then (0,1) is returned which means immediate execution by OSC specs.
+Converts (fractional) unix epoch time to NTP timestamp, which is list of B<($seconds_since_1900_01_01, $int32_fraction_parts_of_second)>.
+If B<$unix_time> is undef then (0,1) is returned which means immediate execution by OSC specs.
 
 =head2 tag2time($ntp_time, $fraction_of_sec)
 
@@ -78,7 +79,7 @@ Packs raw OSC data for (tcp) streaming.
 
 =head2 from_steam($buf)
 
-Returns list of raw OSC data packets in C<$buf> from stream buffer and residue of $buf.
+Returns list of raw OSC data packets in B<$buf> from stream buffer and residue of B<$buf>.
 
 =head1 EXAMPLES
 
@@ -87,6 +88,9 @@ Returns list of raw OSC data packets in C<$buf> from stream buffer and residue o
 make packet
 
     my $data = $osc->message(my @specs = qw(/echo isf 3 ping 3.14));
+    # or
+    use Time::HiRes 'time';
+    my $data $osc->bundle(time, [@specs], [@specs2], ...);
 
 via UDP
 
@@ -129,6 +133,19 @@ TCP
     ...
     $osc->process($osc->parse($data));
 
+=head2 Ping-Pong using AnyEvent::Handle::UDP
+
+    use AnyEvent::Handle::UDP;
+    my $udp_handle = AnyEvent::Handle::UDP->new(
+        bind => [0, $port],
+        on_recv => sub {
+            my ($data, $handle, $client_addr) = @_;
+            my $msg = $osc->parse($data);
+            say $msg->path;
+            $handle->push_send($osc->message(qw(/pong i), ($msg->args)[0]), $client_addr) if $msg->path eq '/ping';
+        }
+    );
+    $udp_handle->push_send($osc->message(qw(/ping i 3)), [0, $port]);
 
 =head2 Benchmarks
 
