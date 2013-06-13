@@ -1,7 +1,7 @@
 # ABSTRACT: Open Sound Control v1.1 protocol implementation
-package Protocol::OSC;
 use strict;
 use warnings;
+package Protocol::OSC;
 use Scalar::Util 'looks_like_number';
 use constant { NTP_EPOCH_DIFF => 2208988800, MAX_INT => 1 << 32 };
 my %converter = qw(i N f f> d d> s Z*x!4 b N/C*x!4 h h t N2);
@@ -19,7 +19,7 @@ sub parse {
         my ($path, $type, $args) = unpack '(Z*x!4)2A*', $data;
         substr $type, 0, 1, '';
         Protocol::OSC::Message->new( $path, $type,
-            unpack join('', map $converter{$_} // (), split //, $type), pack 'Z*x!4', $args );
+            unpack join('', map $converter{$_} || (), split '', $type), pack 'Z*x!4', $args );
     } else { warn 'broken osc packet' }
 }
 sub bundle {
@@ -52,7 +52,7 @@ sub match {
     my ($self, $pattern) = @_;
     $pattern =~ s!(\*|//)!.+!g;
     $pattern =~ y/?{},!/.()^|/;
-    map [$_, $self->{actions}->{$_}], grep /^$pattern$/, keys$self->{actions};
+    map [$_, $self->{actions}->{$_}], grep /^$pattern$/, keys%{$self->{actions}};
 }
 sub tag2time {
     my ($self, $secs, $frac) = @_;
@@ -75,16 +75,12 @@ sub from_stream {
 }
 
 package Protocol::OSC::Message;
-use strict;
-use warnings;
 sub new { bless [splice(@_,1)], shift }
 sub path { $_[0]->[0] }
 sub type { $_[0]->[1] }
 sub args { my $self = shift; @$self[2..$#$self] }
 
 package Protocol::OSC::Bundle;
-use strict;
-use warnings;
 sub new { bless [splice(@_,1)], shift }
 sub time { $_[0]->[0] }
 sub packets { my $self = shift; @$self[1..$#$self] }
