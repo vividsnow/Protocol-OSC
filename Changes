@@ -1,3 +1,7 @@
+0.02
+
+    require 5.10 as minimal version + fix network tests
+
 0.01
 
 	make it compatible with older perls

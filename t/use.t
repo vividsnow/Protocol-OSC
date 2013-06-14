@@ -2,8 +2,9 @@ use strict;
 use warnings;
 use Test::More;
 use IO::Socket::INET;
+use Test::TCP 'test_tcp';
+use Time::HiRes qw(time usleep);
 use Net::EmptyPort 'empty_port';
-use Time::HiRes 'time';
 
 BEGIN { use_ok 'Protocol::OSC' }
 my $p = Protocol::OSC->new;
@@ -13,19 +14,28 @@ if (my $port = empty_port(undef, 'udp')) {
     my $in = IO::Socket::INET->new( qw(LocalAddr localhost LocalPort), $port, qw(Proto udp Type), SOCK_DGRAM );
     my $client = IO::Socket::INET->new( qw(PeerAddr localhost PeerPort), $port, qw(Proto udp Type), SOCK_DGRAM );
     $client->send($p->bundle(@spec));
+    usleep 0.2e6;
     $in->recv(my $packet, $in->sockopt(SO_RCVBUF));
-
     ok($p->parse($packet)->[0] eq $spec[0], 'bundle in-out - udp') if $packet;
 }
 
-if (my $port = empty_port(undef, 'tcp')) {
-    my $in = IO::Socket::INET->new( qw(LocalAddr localhost LocalPort), $port, qw(Proto tcp Type), SOCK_STREAM, qw(Listen 1 Reuse 1) );
-    my $client = IO::Socket::INET->new( qw(PeerAddr localhost PeerPort), $port, Proto => 'tcp', Type => SOCK_STREAM );
-    $client->send($p->to_stream($p->bundle(@spec)));
-    $in->accept->recv(my $packet, $in->sockopt(SO_RCVBUF));
-    
-    ok($p->parse(($p->from_stream($packet))[0])->[0] eq $spec[0], 'bundle in-out - tcp') if $packet;
-}
+test_tcp(
+    client => sub {
+        my ($port, $server_pid) = @_;
+        my $client = IO::Socket::INET->new( qw(PeerAddr localhost PeerPort), $port, qw(Proto tcp Type), SOCK_STREAM );
+        $client->send($p->to_stream($p->bundle(@spec)));
+        usleep 0.2e6;
+    },
+    server => sub {
+        my $port = shift;
+        my $in = IO::Socket::INET->new( qw(LocalAddr localhost LocalPort), $port, qw(Proto tcp Type), SOCK_STREAM, qw(Listen 1),
+            $^O eq 'MSWin32' ? () : (ReuseAddr => 1) );
+        while (my $sock = $in->accept) {
+            $sock->recv(my $packet, $in->sockopt(SO_RCVBUF));
+            ok($p->parse(($p->from_stream($packet))[0])->[0] eq $spec[0], 'bundle in-out - tcp') if $packet;
+        }
+    }
+);
 
 $p->set_cb('/echo', sub { 
     ok !defined($_[0]), 'process 1';
