@@ -1,15 +1,19 @@
+0.03
+
+    bump network tests - unrealiable on non-linux platforms
+
 0.02
 
     require 5.10 as minimal version + fix network tests
 
 0.01
 
-	make it compatible with older perls
-	
+    make it compatible with older perls
+
 0.002
 
-	fix tests - add anyevent example
-	
+    fix tests - add anyevent example
+
 0.001
-        
-	initial
+
+    initial

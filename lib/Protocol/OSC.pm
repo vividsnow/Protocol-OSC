@@ -1,7 +1,7 @@
 # ABSTRACT: Open Sound Control v1.1 protocol implementation
 use strict;
 use warnings;
-use v5.10;
+
 package Protocol::OSC;
 use Scalar::Util 'looks_like_number';
 use constant { NTP_EPOCH_DIFF => 2208988800, MAX_INT => 1 << 32 };
