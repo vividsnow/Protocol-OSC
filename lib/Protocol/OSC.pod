@@ -44,8 +44,8 @@ OSC-bundle is a blessed arrayref B<[$time, @packets]> with corresponding methods
 
 =head2 process($data, ?$scheduler_cb)
 
-Parses OSC packet/data and process messages in it. It will call matched actions throught B<$scheduler_cb> which is 
-just C<< sub { $_[0]->(splice @_,1) } >> by default(or specifed in constructor). 
+Parses OSC packet/data and process messages in it. It will call matched actions through B<$scheduler_cb> which is
+just C<< sub { $_[0]->(splice @_,1) } >> by default(or specified in constructor).
 Arguments to scheduler are B<$action_coderef, $time, $action_path, $osc_msg, ?@osc_bundles>.
 
 =head2 actions

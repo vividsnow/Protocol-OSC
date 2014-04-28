@@ -1,3 +1,7 @@
+0.04
+
+    add $VERSION, fix POD
+
 0.03
 
     bump network tests - unrealiable on non-linux platforms
