@@ -5,8 +5,13 @@ use warnings;
 package Protocol::OSC;
 
 use Scalar::Util 'looks_like_number';
-use constant { NTP_EPOCH_DIFF => 2208988800, MAX_INT => 1 << 32 };
-my %converter = qw(i N f f> d d> s Z*x!4 b N/C*x!4 h h t N2);
+use constant { NTP_EPOCH_DIFF => 2208988800, MAX_INT => 2**32 };
+my %converter = qw(i N f N s Z*x!4 b N/C*x!4 h h t N2);
+my %filter = (f => [qw'f L']);
+if (pack('f>', 0.5) eq pack N => unpack L => pack f => 0.5) { # f> is ieee754 compatible
+    delete$filter{f}; $converter{f} = 'f>' }
+my $has_filters = keys%filter;
+
 sub new { bless {
     scheduler => sub { $_[0]->(splice @_, 1) },
     actions => {},
@@ -21,8 +26,11 @@ sub parse {
     } elsif ($f eq '/') { # message
         my ($path, $type, $args) = unpack '(Z*x!4)2A*', $data;
         substr $type, 0, 1, '';
-        Protocol::OSC::Message->new( $path, $type,
-            unpack join('', map $converter{$_} || (), split '', $type), pack 'Z*x!4', $args );
+        my @args = unpack join('', my @types = map $converter{$_} || (), split '', $type), pack 'Z*x!4', $args;
+        if ($has_filters) { for (grep exists$filter{$_->[1]}, map [$_, $types[$_]], 0..$#types) {
+            my $f = $filter{$_->[1]};
+            $args[$_->[0]] = unpack $f->[0], pack $f->[1], $args[$_->[0]] } }
+        Protocol::OSC::Message->new( $path, $type, @args );
     } else { warn 'broken osc packet' } }
 
 sub bundle {
@@ -35,7 +43,10 @@ sub bundle {
 sub message {
     my ($self, $path, $type, @args) = @_;
     pack '(Z*x!4)2A*', $path, ','.$type,
-        join '', map pack($converter{$_}, shift@args),
+        join '', map pack($converter{$_},
+                          $has_filters && exists$filter{$_}
+                          ? unpack $filter{$_}[1], pack $filter{$_}[0], shift@args
+                          : shift@args),
         grep exists$converter{$_}, split //, $type }
 
 sub process {
@@ -48,11 +59,11 @@ sub process {
         } $self->match($packet->[0]);
     } else { $self->process($self->parse($packet), $scheduler_cb, $at_time, @bundle) } }
 
-sub actions { $_[0]->{actions} }
+sub actions { $_[0]{actions} }
 
-sub set_cb { $_[0]->{actions}->{$_[1]} = $_[2] }
+sub set_cb { $_[0]{actions}{$_[1]} = $_[2] }
 
-sub del_cb { delete $_[0]->{actions}->{$_[1]} }
+sub del_cb { delete $_[0]{actions}{$_[1]} }
 
 sub match {
     my ($self, $pattern) = @_;
@@ -83,14 +94,14 @@ sub from_stream {
 package Protocol::OSC::Message;
 
 sub new { bless [splice(@_,1)], shift }
-sub path { $_[0]->[0] }
-sub type { $_[0]->[1] }
+sub path { $_[0][0] }
+sub type { $_[0][1] }
 sub args { my $self = shift; @$self[2..$#$self] }
 
 package Protocol::OSC::Bundle;
 
 sub new { bless [splice(@_,1)], shift }
-sub time { $_[0]->[0] }
+sub time { $_[0][0] }
 sub packets { my $self = shift; @$self[1..$#$self] }
 
 1;

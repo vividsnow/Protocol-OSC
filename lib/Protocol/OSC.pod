@@ -16,7 +16,7 @@ Protocol::OSC - Open Sound Control v1.1 implementation
 =head1 DESCRIPTION
 
 This module implements (de)coding and processing of OSC packets according the specification. It's pure Perl implementation, yet faster
-than L<Net::LibLO> (~4x) and L<Net::OpenSoundControl> (~2x). Also it provides connection agnostic interface and
+than L<Net::LibLO> and L<Net::OpenSoundControl> (~2x). Also it provides connection agnostic interface and
 path matching and type tagging according L<OSC v1 specification|http://opensoundcontrol.org/spec-1_0> ( and L<v1.1|http://opensoundcontrol.org/spec-1_1> )
 
 =head1 CONSTRUCTOR
@@ -175,6 +175,10 @@ decode
     Net::OpenSoundControl 1630/s                    --                  -65%
     Protocol::OSC         4654/s                  186%                    --
     
+=head2 NB
+
+No validation checks performed
+
 =head1 SUPPORT
 
 =over
