@@ -12,3 +12,14 @@ on 'test' => sub {
 on 'configure' => sub {
   requires "ExtUtils::MakeMaker" => "0";
 };
+
+on 'develop' => sub {
+  requires "Benchmark" => "0";
+  requires "IO::Socket::INET" => "0";
+  requires "Net::EmptyPort" => "0";
+  requires "Net::LibLO::Message" => "0";
+  requires "Net::OpenSoundControl" => "0";
+  requires "Test::More" => "0";
+  requires "Test::TCP" => "0";
+  requires "Time::HiRes" => "0";
+};

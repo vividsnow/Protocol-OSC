@@ -21,12 +21,12 @@ sub new { bless {
 sub parse {
     my ($self, $data) = @_;
     if ((my $f = substr $data, 0, 1) eq '#') { # bundle
-        my (undef, $time, $fraction, @msgs) = unpack 'Z8N2(N/A*)*', $data;
+        my (undef, $time, $fraction, @msgs) = unpack 'Z8N2(N/a*)*', $data;
         Protocol::OSC::Bundle->new($self->tag2time($time, $fraction), map $self->parse($_), @msgs);
     } elsif ($f eq '/') { # message
-        my ($path, $type, $args) = unpack '(Z*x!4)2A*', $data;
+        my ($path, $type, $args) = unpack '(Z*x!4)2a*', $data;
         substr $type, 0, 1, '';
-        my @args = unpack join('', my @types = map $converter{$_} || (), split '', $type), pack 'Z*x!4', $args;
+        my @args = unpack join('', my @types = map $converter{$_} || (), split '', $type), $args;
         if ($has_filters) { for (grep exists$filter{$_->[1]}, map [$_, $types[$_]], 0..$#types) {
             my $f = $filter{$_->[1]};
             $args[$_->[0]] = unpack $f->[0], pack $f->[1], $args[$_->[0]] } }
@@ -35,14 +35,14 @@ sub parse {
 
 sub bundle {
     my ($self, $time, @msgs) = @_;
-    pack 'Z8N2(N/A*)*', '#bundle', $self->time2tag($time), map {
+    pack 'Z8N2(N/a*)*', '#bundle', $self->time2tag($time), map {
         $self->${\( defined $_->[0] && !looks_like_number $_->[0] ? 'message' : 'bundle' )}(@{$_})
     } @msgs }
 
 *msg = \&message;
 sub message {
     my ($self, $path, $type, @args) = @_;
-    pack '(Z*x!4)2A*', $path, ','.$type,
+    pack '(Z*x!4)2a*', $path, ','.$type,
         join '', map pack($converter{$_},
                           $has_filters && exists$filter{$_}
                           ? unpack $filter{$_}[1], pack $filter{$_}[0], shift@args
@@ -82,14 +82,14 @@ sub time2tag {
     my $secs = int($t);
     ( $secs + NTP_EPOCH_DIFF, int MAX_INT * ($t - $secs) ) }
 
-sub to_stream { pack 'N/A*' => $_[1] }
+sub to_stream { pack 'N/a*' => $_[1] }
 
 sub from_stream {
     my ($self, $buf) = @_;
     return $buf if length $buf < 4;
     my $n = unpack 'N', substr $buf, 0, 4;
     return $buf if length $buf < $n + 4;
-    (unpack('N/A*', substr $buf, 0, 4+$n, ''), $buf) }
+    (unpack('N/a*', substr $buf, 0, 4+$n, ''), $buf) }
 
 package Protocol::OSC::Message;
 
