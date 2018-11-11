@@ -6,7 +6,7 @@ package Protocol::OSC;
 
 use Scalar::Util 'looks_like_number';
 use constant { NTP_EPOCH_DIFF => 2208988800, MAX_INT => 2**32 };
-my %converter = qw(i N f N s Z*x!4 b N/C*x!4 h h t N2);
+my %converter = qw(i N f N s Z*x!4 b N/a*x!4 h h t N2);
 my %filter = (f => [qw'f L']);
 if (pack('f>', 0.5) eq pack N => unpack L => pack f => 0.5) { # f> is ieee754 compatible
     delete$filter{f}; $converter{f} = 'f>' }
